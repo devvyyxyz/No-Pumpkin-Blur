@@ -85,19 +85,19 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" -X POST -d '{
             "username": "Modrinth Bot",
-            "avatar_url": "https://cdn.modrinth.com/static/favicon.png",
+            "avatar_url": "https://cdn.modrinth.com/modrinth-new.png",
             "embeds": [{
               "title": "New Release: ${{ github.event.release.name }}",
-              "url": "https://modrinth.com/resourcepack/YOUR_PROJECT_ID",
+              "url": "https://modrinth.com/resourcepack/rERW3QhL",
               "description": "**${{ github.event.release.name }}** is now available! 🎉\n\n${{ github.event.release.body }}",
               "color": 65280,
               "thumbnail": {
-                "url": "https://cdn.modrinth.com/data/YOUR_PROJECT_ID/icon.png"
+                "url": "https://cdn.modrinth.com/data/rERW3QhL/icon.png"
               },
               "fields": [
                 {
                   "name": "🔹 Download",
-                  "value": "[Click here](https://modrinth.com/resourcepack/YOUR_PROJECT_ID/version/${{ github.event.release.tag_name }})"
+                  "value": "[Click here](https://modrinth.com/resourcepack/rERW3QhL/version/${{ github.event.release.tag_name }})"
                 },
                 {
                   "name": "📌 Pack Format",
