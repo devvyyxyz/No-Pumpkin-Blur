@@ -84,5 +84,33 @@ jobs:
       - name: Send Discord Notification
         run: |
           curl -H "Content-Type: application/json" -X POST -d '{
-            "content": "New texture pack version released! Download it here: https://modrinth.com/resourcepack/your-pack"
+            "username": "Modrinth Bot",
+            "avatar_url": "https://cdn.modrinth.com/static/favicon.png",
+            "embeds": [{
+              "title": "New Release: ${{ github.event.release.name }}",
+              "url": "https://modrinth.com/resourcepack/YOUR_PROJECT_ID",
+              "description": "**${{ github.event.release.name }}** is now available! 🎉\n\n${{ github.event.release.body }}",
+              "color": 65280,
+              "thumbnail": {
+                "url": "https://cdn.modrinth.com/data/YOUR_PROJECT_ID/icon.png"
+              },
+              "fields": [
+                {
+                  "name": "🔹 Download",
+                  "value": "[Click here](https://modrinth.com/resourcepack/YOUR_PROJECT_ID/version/${{ github.event.release.tag_name }})"
+                },
+                {
+                  "name": "📌 Pack Format",
+                  "value": "${{ env.game_versions }}"
+                },
+                {
+                  "name": "📅 Released",
+                  "value": "${{ github.event.release.published_at }}"
+                }
+              ],
+              "footer": {
+                "text": "Published via GitHub Actions"
+              },
+              "timestamp": "${{ github.event.release.published_at }}"
+            }]
           }' ${{ secrets.DISCORD_WEBHOOK }}
