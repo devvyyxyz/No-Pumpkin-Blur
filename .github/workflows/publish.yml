@@ -13,28 +13,22 @@ jobs:
         uses: actions/checkout@v4
 
       # Package your texture pack if it's not already a zip file.
-      # This example assumes your texture pack files are in a folder called "texturepack".
       - name: Package Texture Pack
-        run: zip -r texturepack.zip texturepack
+        run: zip -r texturepack.zip . -x ".git/*"
 
-      # Publish to Modrinth using the mc-publish action
+      # Publish to Modrinth using mc-publish (explicitly setting the type)
       - name: Publish to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          # Your Modrinth project ID or slug for this texture pack.
           modrinth-id: rERW3QhL
-          # Modrinth API token stored as a secret.
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          # Version details pulled from the release event.
           github-tag: ${{ github.event.release.tag_name }}
           name: ${{ github.event.release.name }}
           version: ${{ github.event.release.tag_name }}
           changelog: ${{ github.event.release.body }}
-          # For resource packs, set loaders to "minecraft".
+          type: resourcepack  # <-- This tells mc-publish it's a resource pack, not a mod
           loaders: minecraft
-          # Specify the supported Minecraft versions.
           game-versions: |-
             1.19.3
             1.19.4
-          # Path to your packaged texture pack.
           files: texturepack.zip
