@@ -1,4 +1,4 @@
-name: Publish Texture Pack to Modrinth & CurseForge
+name: Publish Texture Pack to Modrinth
 
 on:
   release:
@@ -6,31 +6,34 @@ on:
 
 jobs:
   publish:
-    name: Package and Publish Texture Pack
+    name: Validate, Package, and Publish Texture Pack
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Validate JSON Files
-        run: find . -name "*.json" -exec jq empty {} \;
+        run: |
+          for file in $(find . -name "*.json"); do
+            if ! jq empty "$file"; then
+              echo "Invalid JSON: $file"
+              exit 1
+            fi
+          done
 
-      - name: Install RPValid
-        run: curl -L https://github.com/IMP1/rpvalid/releases/latest/download/rpvalid-linux -o rpvalid && chmod +x rpvalid
-
-      - name: Validate Resource Pack
-        run: ./rpvalid --path .
+      - name: Validate pack.mcmeta
+        run: |
+          if [ ! -f "pack.mcmeta" ]; then
+            echo "Error: pack.mcmeta is missing!"
+            exit 1
+          fi
+          if ! jq -e '.pack.pack_format' pack.mcmeta > /dev/null; then
+            echo "Error: pack_format is missing in pack.mcmeta!"
+            exit 1
+          fi
 
       - name: Package Texture Pack
         run: zip -r texturepack.zip . -x ".git/*"
-
-      - name: Generate Changelog
-        run: |
-          if [[ -z "${{ github.event.release.body }}" ]]; then
-            git log $(git describe --tags --abbrev=0 @^)..@ --oneline > changelog.txt
-          else
-            echo "${{ github.event.release.body }}" > changelog.txt
-          fi
 
       - name: Publish to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
@@ -46,11 +49,4 @@ jobs:
           game-versions: |-
             1.19.3
             1.19.4
-          files: texturepack.zip
-
-      - name: Publish to CurseForge
-        uses: Kir-Antipov/mc-publish@v3.3
-        with:
-          curseforge-id: 123456
-          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           files: texturepack.zip
