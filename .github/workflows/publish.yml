@@ -32,8 +32,35 @@ jobs:
             exit 1
           fi
 
+      - name: Detect pack_format and set game versions
+        id: detect_pack_format
+        run: |
+          PACK_FORMAT=$(jq -r '.pack.pack_format' pack.mcmeta)
+          echo "Detected pack_format: $PACK_FORMAT"
+
+          case $PACK_FORMAT in
+            1) GAME_VERSIONS="1.6,1.7" ;;
+            2) GAME_VERSIONS="1.8" ;;
+            3) GAME_VERSIONS="1.9,1.10,1.11" ;;
+            4) GAME_VERSIONS="1.12" ;;
+            5) GAME_VERSIONS="1.13" ;;
+            6) GAME_VERSIONS="1.14" ;;
+            7) GAME_VERSIONS="1.15" ;;
+            8) GAME_VERSIONS="1.16" ;;
+            9|10|11) GAME_VERSIONS="1.17,1.18" ;;
+            12|13) GAME_VERSIONS="1.19" ;;
+            14|15) GAME_VERSIONS="1.20" ;;
+            *) echo "Unknown pack_format!"; exit 1 ;;
+          esac
+
+          echo "Mapped to Minecraft versions: $GAME_VERSIONS"
+          echo "game_versions=$GAME_VERSIONS" >> $GITHUB_ENV
+
       - name: Package Texture Pack
-        run: zip -r texturepack.zip . -x ".git/*"
+        run: zip -r "texturepack-${{ github.event.release.tag_name }}.zip" . -x ".git/*"
+
+      - name: Set ZIP Filename
+        run: echo "ZIP_NAME=texturepack-${{ github.event.release.tag_name }}.zip" >> $GITHUB_ENV
 
       - name: Publish to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
@@ -46,7 +73,16 @@ jobs:
           changelog: ${{ github.event.release.body }}
           type: resourcepack
           loaders: minecraft
-          game-versions: |-
-            1.19.3
-            1.19.4
-          files: texturepack.zip
+          game-versions: ${{ env.game_versions }}
+          files: ${{ env.ZIP_NAME }}
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ env.ZIP_NAME }}
+
+      - name: Send Discord Notification
+        run: |
+          curl -H "Content-Type: application/json" -X POST -d '{
+            "content": "New texture pack version released! Download it here: https://modrinth.com/resourcepack/your-pack"
+          }' ${{ secrets.DISCORD_WEBHOOK }}
