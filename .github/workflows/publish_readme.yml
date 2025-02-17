@@ -1,0 +1,44 @@
+name: Publish README Update to Modrinth
+
+on:
+  push:
+    paths:
+      - "README.md"
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  publish-readme:
+    name: Publish README Update to Modrinth
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Convert README.md to JSON Format
+        id: readme_convert
+        run: |
+          DESCRIPTION=$(jq -Rs . < README.md) # Convert README.md to JSON-safe format
+          echo "description=$DESCRIPTION" >> $GITHUB_ENV
+
+      - name: Update Modrinth Project Description
+        run: |
+          curl -X PATCH "https://api.modrinth.com/v2/project/YOUR_PROJECT_ID" \
+            -H "Authorization: ${{ secrets.MODRINTH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"body\": ${{ env.description }}}"
+
+      - name: Zip Resource Pack
+        run: zip -r "resourcepack-readme-update.zip" . -x ".git/*"
+
+      - name: Publish New Modrinth Version
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: rERW3QhL
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          version: "readme-update-${{ github.run_number }}"
+          name: "README Updated - ${{ github.run_number }}"
+          changelog: "Updated README.md description."
+          type: resourcepack
+          loaders: minecraft
+          game-versions: "1.20, 1.19"
+          files: resourcepack-readme-update.zip
