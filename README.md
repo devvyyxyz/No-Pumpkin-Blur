@@ -4,6 +4,6 @@
 
 ### Compatible with
 - All vanilla mods
-- All non vanilla mods
+- All non-vanilla mods
 ### Donate
 If you want to support me and my projects you can support me [here](https://github.com/sponsors/devvyyxyz/)
