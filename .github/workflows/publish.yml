@@ -1,4 +1,4 @@
-name: Publish Texture Pack to Modrinth
+name: Publish Texture Pack to Modrinth & CurseForge
 
 on:
   release:
@@ -12,11 +12,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Package your texture pack if it's not already a zip file.
+      - name: Validate JSON Files
+        run: find . -name "*.json" -exec jq empty {} \;
+
+      - name: Install RPValid
+        run: curl -L https://github.com/IMP1/rpvalid/releases/latest/download/rpvalid-linux -o rpvalid && chmod +x rpvalid
+
+      - name: Validate Resource Pack
+        run: ./rpvalid --path .
+
       - name: Package Texture Pack
         run: zip -r texturepack.zip . -x ".git/*"
 
-      # Publish to Modrinth using mc-publish (explicitly setting the type)
+      - name: Generate Changelog
+        run: |
+          if [[ -z "${{ github.event.release.body }}" ]]; then
+            git log $(git describe --tags --abbrev=0 @^)..@ --oneline > changelog.txt
+          else
+            echo "${{ github.event.release.body }}" > changelog.txt
+          fi
+
       - name: Publish to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
         with:
@@ -26,9 +41,16 @@ jobs:
           name: ${{ github.event.release.name }}
           version: ${{ github.event.release.tag_name }}
           changelog: ${{ github.event.release.body }}
-          type: resourcepack  # <-- This tells mc-publish it's a resource pack, not a mod
+          type: resourcepack
           loaders: minecraft
           game-versions: |-
             1.19.3
             1.19.4
+          files: texturepack.zip
+
+      - name: Publish to CurseForge
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-id: 123456
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           files: texturepack.zip
