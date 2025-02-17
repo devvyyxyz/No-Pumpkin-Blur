@@ -1,74 +1,50 @@
-name: publish
+name: Publish to Modrinth via mc-publish
 
-on: 
-  workflow_dispatch
+on:
+  release:
+    types: [published]
 
 jobs:
-  build:
+  publish:
+    name: Build and Publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: set up JDK 21
-        uses: actions/setup-java@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up Java (adjust version/distribution as needed)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          distribution: 'adopt-hotspot'
-          java-version: 21
-          cache: 'gradle'
+          java-version: 17
+          distribution: temurin
+          cache: maven
 
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
-      - name: build files
-        run: ./gradlew build
+      # Build your project
+      - name: Build the project
+        run: |
+          # Example using Maven. Modify if using Gradle or another tool.
+          mvn clean package
 
-      - name: read mod name, mod version and minecraft version
-        id: properties
-        uses: christian-draeger/read-properties@1.1.1
+      # Publish to Modrinth using the mc-publish action
+      - name: Publish to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
         with:
-          path: './gradle.properties'
-          properties: 'archives_base_name mod_version minecraft_version'
-
-      - uses: Kir-Antipov/mc-publish@v3.3
-        with:
-          modrinth-featured: true
-          modrinth-unfeature-mode: subset
-
+          # The Modrinth project ID (or slug) for which this version is published.
+          modrinth-id: rERW3QhL
+          # Your Modrinth API token (stored as a secret).
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
-
-          name: '${{ steps.properties.outputs.archives_base_name }}-${{ steps.properties.outputs.mod_version }}+${{ steps.properties.outputs.minecraft_version }}'
-          version: '${{ steps.properties.outputs.mod_version }}+${{ steps.properties.outputs.minecraft_version }}'
-          game-versions: |
-            ${{ steps.properties.outputs.minecraft_version }}
-
-          version-type: release
-          version-resolver: exact
-
-          dependencies: |
-            fabric-api | depends | *
-            cloth-config | depends | *
-            libz | depends | *
-
-          changelog-file: CHANGELOG.md
-
-          retry-attempts: 2
-          retry-delay: 10000
-          fail-mode: fail
-
-      - name: read changelog
-        id: changelog
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: 'CHANGELOG.md'
-
-      - name: discord webhook
-        uses: tsickert/discord-webhook@v5.3.0
-        with:
-          webhook-url: ${{ secrets.WEBHOOK_URL }}
-          embed-title: "${{ steps.properties.outputs.archives_base_name }} ${{ steps.properties.outputs.mod_version }} for Minecraft ${{ steps.properties.outputs.minecraft_version }} has been released!"
-          embed-description: "**Changelog**
-
-md\n${{ steps.changelog.outputs.content }}
-
-\n**Downloads**\n<:modrinth:1110118061106798644> https://modrinth.com/mod/${{ steps.properties.outputs.archives_base_name }}\n<:curseforge:1110124796362109028> https://www.curseforge.com/minecraft/mc-mods/${{ steps.properties.outputs.archives_base_name }}"
-          embed-footer-text: "Have fun and be blessed!"
-          embed-color: 0xFF8000
+          # Use release metadata from GitHub to define the version details.
+          github-tag: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          version: ${{ github.event.release.tag_name }}
+          changelog: ${{ github.event.release.body }}
+          # Specify which mod loaders and Minecraft versions are supported.
+          loaders: |-
+            fabric
+            forge
+          game-versions: |-
+            1.19.3
+            1.19.4
+          # Path to the built artifact. Adjust this if your artifact is generated elsewhere.
+          files: target/your-artifact.jar
